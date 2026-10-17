@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- v16: master choices are selectable + free text -->
+<title>在庫管理</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --yellow:#FFD500;--yellow2:#FFEA4D;--ink:#202124;--muted:#6b6f76;
+  --line:#e5e7eb;--bg:#f7f7f5;--card:#fff;--danger:#b42318;--ok:#177245;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}
+main{max-width:1120px;margin:auto;padding:16px}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+h1{font-size:27px;margin:4px 0}.muted{color:var(--muted);font-size:13px}
+.badge{display:inline-block;background:var(--yellow);padding:4px 9px;border-radius:999px;font-weight:800;font-size:12px}
+.auth{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;margin:14px 0}
+.authrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.authrow input{min-width:260px;flex:1}
+nav{display:flex;gap:7px;overflow-x:auto;margin:14px 0;padding-bottom:3px}
+button,input,select,textarea{font:inherit;border:1px solid #cfd3d7;border-radius:10px;background:#fff;padding:10px}
+button{cursor:pointer}button.primary,button.active{background:var(--yellow);border-color:#e2bd00;color:#111;font-weight:800}
+button.danger{color:var(--danger)}button:disabled{opacity:.55;cursor:not-allowed}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;margin:12px 0}
+.hidden{display:none}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px}
+label{display:block;font-size:12px;font-weight:650;color:#202124}label input,label select,label textarea{display:block;width:100%;margin-top:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{min-height:22px;font-size:13px}
+.status.ok{color:var(--ok)}.status.err{color:var(--danger)}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:10px;max-height:62vh}
+table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{padding:9px;border-bottom:1px solid #eee;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#FFD500!important;color:#161616!important;font-weight:800;z-index:2} thead th, .tablewrap thead th{background-color:#FFD500!important;color:#161616!important}tr:hover td{background:#fffceb} tbody td{background:#fff} tbody tr:hover td{background:#fffceb}
+.filter-choice{display:grid;grid-template-columns:minmax(110px,.8fr) minmax(120px,1.2fr);gap:6px}.filter-choice select,.filter-choice input{min-width:0;width:100%}@media(max-width:700px){.filter-choice{grid-template-columns:1fr 1fr}}.register-grid{grid-template-columns:repeat(12,minmax(0,1fr))}.register-grid>label{grid-column:span 3}.register-grid>label.wide{grid-column:span 8}.register-grid>label.short{grid-column:span 2}.register-grid>label.medium{grid-column:span 4}@media(max-width:700px){.register-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.register-grid>label{grid-column:span 2}.register-grid>label.wide{grid-column:span 4}.register-grid>label.short{grid-column:span 2}.register-grid>label.medium{grid-column:span 2}}.sticky-action{position:sticky;left:0;z-index:3;min-width:108px;width:108px;max-width:108px;white-space:nowrap;background:#fff!important;box-shadow:2px 0 4px #00000014}.tablewrap thead .sticky-action{z-index:5;background:#FFD500!important}.sticky-action button{padding:6px 7px;font-size:11px}.itemname{white-space:normal;min-width:220px;max-width:360px}.money{text-align:right}
+.metricgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.metric{background:#fffceb;border:1px solid #f2dd6c;border-radius:12px;padding:13px}.metric strong{display:block;font-size:23px;margin-top:4px}
+.storagebar{height:8px;background:#ececec;border-radius:10px;overflow:hidden}.storagebar span{display:block;height:100%;background:var(--yellow)}
+.setup{border-left:5px solid var(--yellow)}.noticebox{background:#fff9cf;border:1px solid #f0d85a;border-radius:11px;padding:11px}
+dialog{border:1px solid var(--line);border-radius:14px;max-width:min(94vw,480px)}
+.small{font-size:12px}.right{text-align:right}
+@media(max-width:640px){main{padding:10px}.top{display:block}h1{font-size:24px}.panel{padding:12px}th,td{padding:8px}.hide-mobile{display:none}}
+.choice-type{display:flex;gap:6px;align-items:center}.choice-type select{min-width:110px;max-width:42%}.choice-type input{min-width:0;flex:1}
+.master-group{min-width:0}.master-list{display:flex;flex-direction:column}.master-row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #eee}.master-edit-btn{width:58px;min-width:58px;padding:7px 6px;position:relative;z-index:1}.master-value{min-width:0;overflow-wrap:anywhere}@media(max-width:700px){#masterGroups{grid-template-columns:1fr}.master-row{grid-template-columns:58px minmax(0,1fr)}.master-edit-btn{width:54px;min-width:54px;padding:7px 4px}}
+
+.master-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.master-group-head h3{margin:0}
+.master-group-actions{display:flex;gap:6px;flex-wrap:wrap}
+.master-manage-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #eee}
+.master-manage-row input{min-width:0}
+@media(max-width:700px){.master-manage-row{grid-template-columns:minmax(0,1fr) auto}.master-manage-row .save-master-value{grid-column:2}.master-manage-row .delete-master-value{grid-column:2}}
+
+.master-group-actions button{min-width:64px}
+.master-group-actions button[data-master-group-delete]{font-weight:700}
+@media(max-width:700px){
+  .master-group-head{align-items:flex-start}
+  .master-group-actions{flex-shrink:0}
+}
+
+.lost-status{color:#c62828;font-weight:800}
+
+.lost-name{color:#c62828;font-weight:800}
+.sticky-right-action{position:sticky;right:0;z-index:3;min-width:120px;white-space:nowrap;background:#fff!important;box-shadow:-2px 0 4px #00000014}.tablewrap thead .sticky-right-action{z-index:5;background:#FFD500!important}.sticky-right-action button{padding:6px 7px;font-size:11px}.sticky-action{min-width:72px;width:72px;max-width:72px}
+
+/* v32: 右端の操作列を省スペース化 */
+.tablewrap .sticky-right-action{min-width:0;width:92px;max-width:92px;padding:5px 4px;text-align:center;white-space:nowrap}
+.tablewrap .sticky-right-action .mini-action{display:inline-block;width:auto;min-width:0;padding:4px 5px;margin:0 1px;font-size:10px;line-height:1.15;border-radius:5px}
+@media(max-width:700px){.tablewrap .sticky-right-action{width:86px;max-width:86px;padding:4px 2px}.tablewrap .sticky-right-action .mini-action{padding:4px 3px;font-size:10px}}
+</style>
+<!-- v14: Season/color filters support both select and text input -->
+</head>
+<body>
+<main>
+<div class="top">
+  <div><h1>在庫管理 <small style="font-size:12px;color:#666;font-weight:500">v33</small></h1></div>
+  
+</div>
+
+<section class="auth setup">
+  <div class="authrow">
+    <input id="clientId" placeholder="Google OAuth Client ID を貼り付け">
+    <button id="saveClient">Client ID保存</button>
+    <button id="connect" class="primary">Googleに接続</button>
+    <button id="reload" disabled>再読込</button>
+  </div>
+  <div id="authStatus" class="status">未接続。最初にOAuth Client IDを1回だけ保存してください。</div>
+  <div class="muted">在庫データはGitHubには保存しません。Googleアカウントで認証し、権限のある家族だけがGoogle Sheetsを読み書きします。</div>
+</section>
+
+<nav id="tabs">
+  <button class="active" data-tab="inventory">Inventory</button>
+  <button data-tab="storage">Storage</button>
+  <button data-tab="sales">Sales</button>
+  <button data-tab="pick">Ship</button>
+  <button data-tab="master">Master</button>
+  <button data-tab="csv">CSV</button>
+</nav>
+
+<section id="inventory" class="panel">
+  <h2>商品検索・絞り込み</h2>
+  <div class="grid">
+    <label>品名検索<input id="nameSearch" placeholder="品名を入力"></label>
+    <label>Season検索<div class="filter-choice"><select id="seasonSearchSelect"><option value="">選択</option></select><input id="seasonSearch" placeholder="または入力"></div></label>
+    <label>色検索<div class="filter-choice"><select id="colorSearchSelect"><option value="">選択</option></select><input id="colorSearch" placeholder="または入力"></div></label>
+    <label>サイズ検索<div class="filter-choice"><select id="sizeSearchSelect"><option value="">選択</option></select><input id="sizeSearch" placeholder="または入力"></div></label>
+    <label>ステータス<select id="stockFilter"><option value="all">すべて</option><option value="stock">在庫のみ</option><option value="sold">売却済み</option></select></label>
+    <label>購入日順に並べ替え<select id="sort"><option value="asc" selected>購入日 古い順</option><option value="desc">購入日 新しい順</option></select></label>
+  </div>
+  <div class="metricgrid" style="margin-top:12px">
+    <div class="metric">表示件数<strong id="count">0</strong></div>
+    <div class="metric">現在庫<strong id="stockCount">0</strong></div>
+    <div class="metric">売却済み<strong id="soldCount">0</strong></div>
+  </div>
+  <h2>商品一覧</h2>
+  <div class="tablewrap"><table><thead><tr>
+    <th class="sticky-action">Sold</th><th>Season</th><th>品名</th><th>色</th><th>Size</th><th>保管場所</th><th>在庫No</th><th>購入日</th><th>品番</th><th>仕入総額</th><th>状態</th><th class="sticky-right-action">操作</th>
+  </tr></thead><tbody id="inventoryRows"></tbody></table></div>
+
+
+  <hr style="margin:28px 0;border:0;border-top:2px solid #e4e4e4">
+  <h2>商品登録フォーム</h2>
+  <form id="addForm">
+    <div class="grid register-grid">
+      <label>在庫No.（年-連番・自動付与）<input id="autoNo" value="接続後に自動発番" readonly><small class="muted">レシート紛失でも通常の連番を使用</small></label>
+      <label>購入日<input name="purchase_date" type="date" required></label>
+      <label>ブランド<div class="choice-type"><select id="brandChoice"><option value="">選択</option></select><input name="brand" id="brandInput" required placeholder="直接入力も可"></div></label>
+      <label class="short">Season<div class="choice-type"><select id="seasonChoice"><option value="">選択</option></select><input name="season" id="seasonInput" placeholder="直接入力も可"></div></label>
+      <label class="short">種類英字<div class="choice-type"><select id="alphaChoice"><option value="">選択</option></select><input name="code_alpha" id="alphaInput" placeholder="直接入力も可"></div></label>
+      <label class="short">商品番号<input name="code_num"></label>
+      <label class="medium">種類（自動入力）<input name="kind" id="kindAuto" readonly placeholder="種類英字を選択"></label>
+      <label class="wide">品名<input name="name" required></label>
+      <label>color<div class="choice-type"><select id="colorChoice"><option value="">選択</option></select><input name="color" id="colorInput" placeholder="直接入力も可"></div></label>
+      <label>size<div class="choice-type"><select id="sizeChoice"><option value="">選択</option></select><input name="size" id="sizeInput" placeholder="直接入力も可"></div></label>
+      <label>保管場所（箱番号）<div class="choice-type"><select id="storageChoice"><option value="">選択</option></select><input name="storage" id="storageSelect" placeholder="直接入力も可"></div></label>
+      <label>購入店舗<div class="choice-type"><select id="storeChoice"><option value="">選択</option></select><input name="store" id="storeInput" placeholder="直接入力も可"></div></label>
+      <label>レシート番号<input name="receipt"></label>
+      <label>購入単価（税抜）<input name="pretax" type="number" step="0.01"><small class="muted" id="priceHint">過去の同一商品があれば候補を表示</small></label>
+      <label>課税区分<select name="tax_class" id="taxClass"><option value="非課税" selected>非課税</option><option value="課税">課税</option></select></label>
+      <label>税率（%・課税時のみ）<input id="taxRate" type="number" step="0.001" min="0" max="100" value="8.875"></label>
+      <label>TAX（自動計算）<input name="tax" id="taxAmount" type="number" step="0.01" readonly value="0.00"></label>
+      <label>送料<input name="shipping" id="shipping" type="number" min="0" step="0.01" value="0"></label>
+      <label>総額（税込・自動計算）<input name="total" id="totalAmount" type="number" step="0.01" readonly></label>
+      <label>メモ<input name="memo"></label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="addBtn">在庫に追加</button>
+      <button type="button" id="lostAddBtn">レシート紛失</button>
+    </div>
+  </form>
+
+
+</section>
+
+<section id="storage" class="panel hidden">
+  <h2>保管場所</h2>
+  <div id="storageCards"></div>
+  <h3>保管場所を追加</h3>
+  <form id="storageForm"><div class="grid">
+    <label>収納場所ID<input name="id" required></label>
+    <label>部屋<input name="room"></label>
+    <label>箱・棚<input name="box"></label>
+    <label>収納種類<input name="type"></label>
+    <label>最大収納数<input name="capacity" type="number" min="0"></label>
+    <label>備考<input name="note"></label>
+  </div><div class="actions"><button class="primary">追加</button></div></form>
+</section>
+
+<section id="sales" class="panel hidden">
+  <h2>Sales</h2>
+  <div class="grid">
+    <label>集計月<input id="month" type="month"></label>
+    <label>集計日<input id="saleDay" type="date"></label>
+  </div>
+  <div class="metricgrid" style="margin-top:12px">
+    <div class="metric">選択月の売却点数<strong id="monthSalesN">0</strong></div>
+    <div class="metric">選択日の売却点数<strong id="daySalesN">0</strong></div>
+  </div>
+  <h3>売却先別集計（選択月）</h3>
+  <div id="marketTotals"></div>
+  <h3>売却履歴</h3>
+  <div class="tablewrap"><table><thead><tr><th>売却日</th><th>在庫No</th><th>品名</th><th>売却先</th></tr></thead><tbody id="salesRows"></tbody></table></div>
+</section>
+
+<section id="pick" class="panel hidden">
+  <h2>Ship</h2>
+  <p class="muted">売却済みで、まだ出庫していない商品。出庫済みにするとStorageの使用数から減ります。</p>
+  <div class="metricgrid"><div class="metric">未出庫<strong id="pickCount">0</strong></div></div>
+  <div class="tablewrap"><table><thead><tr><th class="sticky-action">出庫済</th><th>売却日</th><th>在庫No</th><th>品名</th><th>保管場所</th><th>売却先</th></tr></thead><tbody id="pickRows"></tbody></table></div>
+</section>
+
+<section id="master" class="panel hidden">
+  <div class="actions" style="margin:0 0 10px 0"><button id="openMasterAdd" type="button" class="primary">＋ 候補を追加</button></div>
+  <h2>Master</h2>
+  <div class="actions"><button id="reloadMaster" type="button">Masterだけ再読込</button><span id="masterReloadStatus" class="muted"></span></div>
+  <p class="muted">ブランド・Season・種類英字・色・サイズ・購入店舗・売却先などを大項目ごとに管理します。各大項目の「修正」で候補をまとめて編集し、「削除」でその大項目の候補をまとめて削除できます。</p>
+  <h3>登録済み候補</h3>
+  <div id="masterGroups" class="grid"></div>
+</section>
+
+<section id="csv" class="panel hidden">
+  <h2>CSV / レシート Import</h2>
+  <h3>CSVを取り込む</h3>
+  <p class="muted">先に内容を確認し、在庫Noの重複はスキップします。ヘッダーは在庫管理シートと同じ名称を使用してください。</p>
+  <input id="importCsvFile" type="file" accept=".csv,text/csv">
+  <div id="csvPreview" class="status"></div>
+  <div class="tablewrap"><table><thead id="csvPreviewHead"></thead><tbody id="csvPreviewBody"></tbody></table></div>
+  <div class="actions"><button id="runCsvImport" class="primary" disabled>確認したデータを取り込む</button></div>
+  <h3>レシート画像を読み取る</h3>
+  <p class="muted">画像を読み取ると一覧表に自動反映します。セルをまとめて修正して「OK・一括登録」を押すまで保存しません。画像自体は保存しません。</p>
+  <input id="receiptFile" type="file" accept="image/*" capture="environment">
+  <div class="actions"><button id="readReceipt">レシートを読み取る</button></div>
+  <div id="receiptStatus" class="status"></div>
+  <details><summary>OCRの原文を確認する</summary><textarea id="receiptText" rows="8" style="width:100%" placeholder="読み取った文字"></textarea></details>
+  <div id="receiptReview" class="hidden"><h3>レシートの商品を確認・修正</h3><div id="receiptReviewItems"></div><div class="actions"><button id="receiptAddItem" type="button">商品を1行追加</button><button id="receiptSaveReviewed" class="primary" type="button">OK・一括登録</button></div></div>
+  <h3>Export</h3>
+  <button id="downloadCsv">CSVダウンロード</button>
+</section>
+
+<dialog id="sellDialog">
+<form id="sellForm">
+  <h3>売却登録</h3><div id="sellItem" class="noticebox"></div>
+  <label>売却日<input name="sold_date" type="date" required></label>
+  <label>売却先<div class="choice-type"><select id="sellMarketChoice"><option value="">選択</option></select><input name="market" id="sellMarketInput" required placeholder="直接入力も可"></div></label>
+  <label>メモ<input name="memo"></label>
+  <div class="actions"><button class="primary">保存</button><button type="button" id="sellCancel">キャンセル</button></div>
+</form>
+</dialog>
+<dialog id="editDialog" style="width:min(96vw,720px);max-width:720px;max-height:90vh;overflow:auto">
+<form id="editForm"><h3>在庫の商品を修正</h3><div id="editFields" class="grid"></div><div class="actions"><button class="primary">変更を保存</button><button type="button" id="editCancel">キャンセル</button></div></form>
+</dialog>
+<dialog id="masterAddDialog" style="width:min(94vw,560px);max-width:560px">
+<form id="masterForm">
+  <h3>候補を追加</h3>
+  <div class="grid">
+    <label>項目<div class="choice-type"><select id="masterTypeChoice">
+      <option value="">選択</option><option>ブランド</option><option>Season</option><option>種類英字</option><option>種類対応</option><option>種類</option><option>色</option><option>サイズ</option><option>店舗</option><option>売却先</option><option>保管場所</option>
+    </select><input name="type" id="masterType" required placeholder="直接入力も可"></div></label>
+    <label id="masterValueWrap">名称<input name="value" id="masterValue" placeholder="複数はカンマ区切り"></label>
+    <label id="masterAlphaWrap" class="hidden">種類英字<input name="map_alpha" id="masterMapAlpha" placeholder="例 T"></label>
+    <label id="masterKindWrap" class="hidden">種類<input name="map_kind" id="masterMapKind" placeholder="例 Tシャツ"></label>
+    <label>備考<input name="note"></label>
+  </div>
+  <p class="muted" id="masterHelp">名称はカンマ「,」または「、」で区切って複数登録できます。</p>
+  <div class="actions"><button class="primary">登録</button><button type="button" id="masterAddCancel">キャンセル</button></div>
+</form>
+</dialog>
+
+<dialog id="masterGroupDialog" style="width:min(96vw,680px);max-width:680px;max-height:88vh;overflow:auto">
+  <h3 id="masterGroupTitle">項目を修正</h3>
+  <p class="muted">この大項目の候補をここでまとめて追加・変更・削除できます。</p>
+  <div class="actions">
+    <input id="masterGroupAddValue" placeholder="新しい候補を入力" style="flex:1;min-width:180px">
+    <button type="button" id="masterGroupAddBtn" class="primary">追加</button>
+  </div>
+  <div id="masterGroupRows"></div>
+  <div class="actions"><button type="button" id="masterGroupClose">閉じる</button></div>
+</dialog>
+
+<datalist id="brandList"></datalist><datalist id="seasonList"></datalist><datalist id="alphaList"></datalist><datalist id="kindList"></datalist>
+<datalist id="colorList"></datalist><datalist id="sizeList"></datalist><datalist id="storageListData"></datalist><datalist id="masterTypeList"><option value="ブランド"><option value="Season"><option value="種類英字"><option value="種類対応"><option value="色"><option value="サイズ"><option value="店舗"><option value="売却先"><option value="保管場所"></datalist>
+<datalist id="storeList"></datalist><datalist id="marketList"></datalist>
+
+<script>
+(() => {
+'use strict';
+const SPREADSHEET_ID='1ZEwmSljkpsnCWkkcMYZOjjFfM-M1xMR-I4kMsb4x3aQ';
+const SCOPE='https://www.googleapis.com/auth/spreadsheets';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const money=n=>n===''||n==null||!Number.isFinite(Number(n))?'':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n));
+const today=new Date(); const todayStr=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+$('month').value=todayStr.slice(0,7);$('saleDay').value=todayStr; document.querySelector('[name=purchase_date]').value=todayStr;
+
+let token='', tokenClient=null, selectedItem=null, editingItem=null, editingMaster=null;
+let state={inventory:[],sales:[],storage:[],master:[]};
+let fast={inventoryByNo:new Map(),saleByItem:new Map(),soldNos:new Set(),storageOccupied:new Map()};
+
+function authMsg(msg,kind=''){ $('authStatus').textContent=msg; $('authStatus').className='status '+kind; }
+function clientId(){ return localStorage.getItem('supreme_google_client_id')||''; }
+$('clientId').value=clientId();
+$('saveClient').onclick=()=>{ const v=$('clientId').value.trim(); if(!v){authMsg('Client IDを入力してください','err');return;} localStorage.setItem('supreme_google_client_id',v); authMsg('保存しました。次に「Googleに接続」を押してください。','ok'); initToken(); };
+function initToken(){
+  const cid=clientId(); if(!cid||!window.google?.accounts?.oauth2)return;
+  tokenClient=google.accounts.oauth2.initTokenClient({client_id:cid,scope:SCOPE,callback:(resp)=>{
+    if(resp.error){authMsg('Google認証に失敗しました: '+resp.error,'err');return;}
+    token=resp.access_token; $('reload').disabled=false; authMsg('Google Sheetsに接続しました。読み込み中…','ok'); loadAll();
+  }});
+}
+window.addEventListener('load',()=>setTimeout(initToken,300));
+$('connect').onclick=()=>{ initToken(); if(!tokenClient){authMsg('Client IDを保存してから接続してください。','err');return;} tokenClient.requestAccessToken({prompt:''}); };
+$('reload').onclick=loadAll;
+
+async function api(path,opts={}){
+  if(!token)throw new Error('Googleに未接続です');
+  const res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+SPREADSHEET_ID+path,{
+    ...opts, cache:'no-store', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if(!res.ok){const t=await res.text(); if(res.status===401){token='';authMsg('認証が切れました。もう一度Googleに接続してください。','err');} throw new Error(t);}
+  return res.status===204?{}:res.json();
+}
+const encRange=r=>encodeURIComponent(r);
+async function getRange(range){ const j=await api('/values/'+encRange(range)+'?majorDimension=ROWS'); return j.values||[]; }
+async function appendRow(sheet,row){ return api('/values/'+encRange(sheet+'!A:AA')+':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:[row]})}); }
+async function clearInventoryRow(rowNum){
+  // 行そのものは消さずセルだけ空にする。他の商品の行番号がずれないため安全。
+  return api('/values/'+encRange('Inventory!A'+rowNum+':AA'+rowNum)+':clear',{method:'POST',body:'{}'});
+}
+async function updateRow(sheet,rowNum,row){ return api('/values/'+encRange(sheet+'!A'+rowNum+':AA'+rowNum)+'?valueInputOption=USER_ENTERED',{method:'PUT',body:JSON.stringify({values:[row]})}); }
+
+function hmap(headers){const m={};headers.forEach((h,i)=>m[String(h).trim()]=i);return m;}
+function v(row,map,name){return row[map[name]]??'';}
+function sheetDate(x){
+  if(!x)return ''; const s=String(x);
+  if(/^\d{4}[\/-]\d{1,2}[\/-]\d{1,2}$/.test(s)){const [y,m,d]=s.split(/[\/-]/);return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+  return s;
+}
+async function loadAll(){
+  try{
+    authMsg('Google Sheetsを読み込んでいます…','');
+    const [inv,sales,storage,master]=await Promise.all([getRange('Inventory!A:AA'),getRange('Sales!A:I'),getRange('Storage!A:F'),getRange('Master!A:E')]);
+    parseInventory(inv); parseSales(sales); parseStorage(storage); parseMaster(master); buildFastIndexes(); renderAll();
+    authMsg(`接続中：Inventory ${state.inventory.length.toLocaleString()}件を同期しました。`,'ok');
+  }catch(e){console.error(e);authMsg('読み込みエラー。Google Sheetsへのアクセス権とSheets API設定を確認してください。','err');}
+}
+function parseInventory(rows){
+  if(!rows.length){state.inventory=[];return;} const m=hmap(rows[0]);
+  state.inventory=rows.slice(1).map((r,i)=>({
+    row:i+2,no:v(r,m,'在庫No'),brand:v(r,m,'ブランド'),season:v(r,m,'Season'),alpha:v(r,m,'商品種類'),num:v(r,m,'商品番号'),
+    kind:v(r,m,'種類'),name:v(r,m,'品名'),color:v(r,m,'color'),size:v(r,m,'size'),storage:cleanStorageLabel(v(r,m,'保管場所')),
+    manualMarket:v(r,m,'売却場所 手入力'),purchaseDate:sheetDate(v(r,m,'購入日')),store:v(r,m,'購入店舗'),receipt:v(r,m,'レシート番号'),
+    pretax:v(r,m,'購入単価'),taxClass:v(r,m,'課税・非課税'),tax:v(r,m,'TAX（＄）'),total:v(r,m,'総額'),used:v(r,m,'中古'),
+    oldSaleNo:v(r,m,'売上番号'),oldSoldDate:sheetDate(v(r,m,'売却日')),oldMarket:v(r,m,'売却場所'),oldSalePrice:v(r,m,'売上額'),
+    status:v(r,m,'ステータス'),memo:v(r,m,'メモ'),updated:v(r,m,'更新日時'),shipping:v(r,m,'送料'),raw:r
+  })).filter(x=>String(x.no||x.name).trim());
+}
+function parseSales(rows){
+  if(!rows.length){state.sales=[];return;}const m=hmap(rows[0]);
+  state.sales=rows.slice(1).map((r,i)=>({row:i+2,id:v(r,m,'SaleID'),itemId:v(r,m,'ItemID'),soldDate:sheetDate(v(r,m,'売却日')),market:v(r,m,'売却先'),price:v(r,m,'売却価格（任意）'),picked:String(v(r,m,'出庫済')).toUpperCase()==='TRUE',pickedDate:sheetDate(v(r,m,'出庫日')),memo:v(r,m,'メモ'),created:v(r,m,'登録日時'),raw:r})).filter(x=>x.itemId||x.id);
+}
+function parseStorage(rows){
+  if(!rows.length){state.storage=[];return;}const m=hmap(rows[0]);
+  state.storage=rows.slice(1).map((r,i)=>({row:i+2,id:cleanStorageLabel(v(r,m,'収納場所ID')),room:v(r,m,'部屋'),box:cleanStorageLabel(v(r,m,'箱・棚')),type:v(r,m,'収納種類'),capacity:Number(v(r,m,'最大収納数'))||0,note:v(r,m,'備考'),raw:r})).filter(x=>x.id);
+}
+function parseMaster(rows){
+  if(!rows.length){state.master=[];return;}const m=hmap(rows[0]);
+  state.master=rows.slice(1).map((r,i)=>({row:i+2,type:v(r,m,'種類'),value:v(r,m,'候補値'),order:Number(v(r,m,'表示順'))||9999,enabled:String(v(r,m,'有効')).toUpperCase()!=='FALSE',note:v(r,m,'備考'),raw:r})).filter(x=>x.type&&x.value);
+}
+function buildFastIndexes(){
+  fast.inventoryByNo=new Map(); fast.saleByItem=new Map(); fast.soldNos=new Set(); fast.storageOccupied=new Map();
+  for(const it of state.inventory) fast.inventoryByNo.set(String(it.no),it);
+  // 同じItemIDが複数ある場合は、後から記録された行（例：出庫済み更新）を優先
+  for(const sale of state.sales) fast.saleByItem.set(String(sale.itemId),sale);
+  for(const it of state.inventory){
+    const key=String(it.no), sale=fast.saleByItem.get(key);
+    const sold=!!sale||!!it.oldSoldDate||String(it.status).includes('売却');
+    if(sold) fast.soldNos.add(key);
+    const picked=!!sale?.picked;
+    if(!sold||!picked){
+      const loc=String(it.storage||'');
+      if(loc) fast.storageOccupied.set(loc,(fast.storageOccupied.get(loc)||0)+1);
+    }
+  }
+}
+function saleFor(no){
+  const key=String(no),s=fast.saleByItem.get(key); if(s)return s;
+  const it=fast.inventoryByNo.get(key); if(it?.oldSoldDate)return {id:'legacy-'+no,itemId:no,soldDate:it.oldSoldDate,market:it.oldMarket||it.manualMarket,price:it.oldSalePrice,picked:false,legacy:true};
+  return null;
+}
+function isSold(it){return fast.soldNos.has(String(it.no));}
+function candidate(types){const t=types.map(x=>x.toLowerCase());return [...new Set(state.master.filter(x=>x.enabled&&t.includes(String(x.type).toLowerCase())).sort((a,b)=>String(a.value).localeCompare(String(b.value),'ja')).map(x=>x.value))];}
+function setList(id,vals){$(id).innerHTML=vals.map(x=>`<option value="${esc(x)}"></option>`).join('');}
+function kindMappings(){
+  const map=new Map();
+  for(const x of state.master.filter(x=>x.enabled&&['種類対応','種類英字対応'].includes(x.type))){
+    const m=String(x.value).match(/^\\s*([^=:：]+)\\s*[=:：]\\s*(.+)\\s*$/);
+    if(m)map.set(m[1].trim(),m[2].trim());
+  }
+  return map;
+}
+function fillSelect(id,items,placeholder){
+  const el=$(id),old=el.value;
+  el.innerHTML=`<option value="">${esc(placeholder)}</option>`+[...new Set(items.filter(Boolean))].map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  if([...el.options].some(x=>x.value===old))el.value=old;
+}
+function bindChoice(selectId,inputId,onChange){
+  const sel=$(selectId), inp=$(inputId);
+  if(!sel||!inp)return;
+  sel.addEventListener('change',()=>{
+    if(sel.value!=='') inp.value=sel.value;
+    if(onChange)onChange();
+    inp.dispatchEvent(new Event('input',{bubbles:true}));
+    inp.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+}
+function cleanStorageLabel(v){
+  const t=String(v??'').trim();
+  return /^-?\d+\.0+$/.test(t)?t.replace(/\.0+$/,''):t;
+}
+function renderLists(){
+  const brands=candidate(['ブランド','brand']);
+  const seasons=candidate(['season']);
+  const kinds=kindMappings();
+  const alphas=[...candidate(['種類英字','商品種類','品番英字','alpha']),...kinds.keys()];
+  const masterColors=candidate(['色','color']);
+  const masterSizes=candidate(['サイズ','size']);
+  const stores=candidate(['店舗','購入店舗']);
+  const markets=candidate(['売却先']);
+  const mapVals=state.storage.map(x=>cleanStorageLabel(x.box||x.id)).filter(Boolean);
+
+  // 明示的なプルダウン + 直接入力の両対応
+  fillSelect('brandChoice',brands,'選択');
+  fillSelect('seasonChoice',seasons,'選択');
+  fillSelect('alphaChoice',alphas,'選択');
+  fillSelect('colorChoice',masterColors,'選択');
+  fillSelect('sizeChoice',masterSizes,'選択');
+  fillSelect('storeChoice',stores,'選択');
+  fillSelect('storageChoice',mapVals,'選択');
+  fillSelect('sellMarketChoice',markets,'選択');
+
+  // 検索の選択肢はMasterをそのまま反映。候補外は右側に直接入力できる。
+  fillSelect('seasonSearchSelect',seasons,'Masterから選択');
+  fillSelect('colorSearchSelect',masterColors,'Masterから選択');
+  fillSelect('sizeSearchSelect',masterSizes,'Masterから選択');
+
+  // datalistは後方互換用に残す
+  setList('brandList',brands);
+  setList('seasonList',seasons);
+  setList('alphaList',alphas);
+  setList('kindList',candidate(['種類']));
+  setList('colorList',masterColors);
+  setList('sizeList',masterSizes);
+  setList('storeList',stores);
+  setList('marketList',markets);
+  setList('storageListData',mapVals);
+  $('storageSelect').value=cleanStorageLabel($('storageSelect').value);
+  applyKindMapping();
+}
+function applyKindMapping(){
+  const key=$('alphaInput').value;
+  $('kindAuto').value=kindMappings().get(key)||'';
+}
+function suggestHistoricalPrice(){
+  const f=$('addForm').elements;
+  const same=state.inventory.filter(x=>String(x.brand)===String(f.brand.value)&&String(x.alpha)===String(f.code_alpha.value)&&String(x.num)===String(f.code_num.value)&&String(x.color)===String(f.color.value)&&String(x.size)===String(f.size.value)&&x.pretax!=='');
+  same.sort((a,b)=>String(b.purchaseDate).localeCompare(String(a.purchaseDate)));
+  const match=same[0];$('priceHint').textContent=match?`過去の登録価格: $${match.pretax}（編集できます）`:'過去の同一商品があれば自動入力';
+  if(match&&!f.pretax.value){f.pretax.value=match.pretax;updateAmounts();}
+}
+$('alphaInput').addEventListener('input',()=>{applyKindMapping();suggestHistoricalPrice();});
+bindChoice('brandChoice','brandInput',suggestHistoricalPrice);
+bindChoice('seasonChoice','seasonInput',renderInventory);
+bindChoice('alphaChoice','alphaInput',()=>{applyKindMapping();suggestHistoricalPrice();});
+bindChoice('colorChoice','colorInput',suggestHistoricalPrice);
+bindChoice('sizeChoice','sizeInput',suggestHistoricalPrice);
+bindChoice('storageChoice','storageSelect');
+bindChoice('storeChoice','storeInput');
+bindChoice('sellMarketChoice','sellMarketInput');
+bindChoice('masterTypeChoice','masterType',syncMasterEntryUI);
+
+['brand','code_num','color','size'].forEach(n=>$('addForm').elements[n].addEventListener('change',suggestHistoricalPrice));
+
+function nextInventoryNo(year){
+  const yy=String(year).slice(-2);let max=0;
+  for(const it of state.inventory){const m=String(it.no).match(new RegExp('^'+yy+'-(\\d+)$'));if(m)max=Math.max(max,Number(m[1]));}
+  return yy+'-'+String(max+1);
+}
+function updateAutoNo(){const d=document.querySelector('[name=purchase_date]').value;$('autoNo').value=d?nextInventoryNo(d.slice(0,4)):'購入日を入力してください';}
+function renderInventory(){
+  const nameQ=$('nameSearch').value.trim().toLowerCase();
+  const seasonQ=($('seasonSearch').value.trim()||$('seasonSearchSelect').value).toLowerCase();
+  const colorQ=($('colorSearch').value.trim()||$('colorSearchSelect').value).toLowerCase();
+  const sizeQ=($('sizeSearch').value.trim()||$('sizeSearchSelect').value).toLowerCase();
+  const f=$('stockFilter').value,dir=$('sort').value;
+  let rows=state.inventory.filter(x=>{
+    const sold=isSold(x); if(f==='stock'&&sold)return false;if(f==='sold'&&!sold)return false;
+    if(nameQ&&!String(x.name||'').toLowerCase().includes(nameQ))return false;
+    if(seasonQ&&!String(x.season||'').toLowerCase().includes(seasonQ))return false;
+    if(colorQ&&!String(x.color||'').toLowerCase().includes(colorQ))return false;
+    if(sizeQ&&!String(x.size||'').toLowerCase().includes(sizeQ))return false;
+    return true;
+  });
+  // 購入日を実際の日付として比較。2055/2100年の仮日付は最後に表示。
+  const dateKey=x=>{
+    const raw=String(x.purchaseDate||'').trim();
+    const m=raw.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+    if(!m)return null;
+    const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]);
+    if(year>=2055||month<1||month>12||day<1||day>31)return null;
+    return year*10000+month*100+day;
+  };
+  rows.sort((a,b)=>{
+    const ad=dateKey(a),bd=dateKey(b);
+    if(ad===null&&bd===null)return a.row-b.row;
+    if(ad===null)return 1;
+    if(bd===null)return -1;
+    const diff=dir==='desc'?bd-ad:ad-bd;
+    return diff||a.row-b.row;
+  });
+  const stockN=state.inventory.length-fast.soldNos.size, soldN=fast.soldNos.size;
+  const limit=window.innerWidth<700?120:300, shown=Math.min(rows.length,limit);
+  $('count').textContent=rows.length.toLocaleString()+(rows.length>shown?`（${shown.toLocaleString()}件表示）`:``);
+  $('stockCount').textContent=stockN.toLocaleString(); $('soldCount').textContent=soldN.toLocaleString();
+  $('inventoryRows').innerHTML=rows.slice(0,limit).map(x=>{
+    const sale=saleFor(x.no);
+    const lost=String(x.status||'').includes('レシート紛失') || x.purchaseDate==='2100-03-31' || String(x.no||'').startsWith('紛失-');
+    const shownStatus=lost
+      ? `<span class="lost-status" style="color:#c62828;font-weight:800">${isSold(x)?'レシート紛失・売却済':'レシート紛失'}</span>`
+      : (isSold(x)?'売却済':'在庫');
+    return `<tr><td class="sticky-action">${sale||isSold(x)?'<span class="muted">売却済</span>':`<button class="primary" data-sell="${esc(x.no)}">Sold</button>`}</td><td>${esc(x.season)}</td><td class="itemname ${lost?'lost-name':''}" ${lost?'style="color:#c62828;font-weight:800"':''}>${esc(x.name)}</td><td>${esc(x.color)}</td><td>${esc(x.size)}</td><td>${esc(x.storage)}</td><td>${esc(x.no)}</td><td>${esc(x.purchaseDate)}</td><td>${esc((x.alpha||'')+(x.num||''))}</td><td class="money">${money(x.total)}</td><td>${shownStatus}</td><td class="sticky-right-action"><button type="button" class="mini-action" data-edit="${x.row}" title="修正" aria-label="修正">修正</button><button type="button" class="mini-action danger" data-delete="${x.row}" title="削除" aria-label="削除">削除</button></td></tr>`;
+  }).join('');
+}
+
+function renderStorage(){
+  $('storageCards').innerHTML=state.storage.length?state.storage.map(l=>{
+    const occupied=Math.max(fast.storageOccupied.get(String(l.box||l.id))||0,fast.storageOccupied.get(String(l.id))||0);
+    const pct=l.capacity?Math.min(100,occupied/l.capacity*100):0;
+    return `<div class="panel"><b>${esc(l.id)}</b> <span class="muted">${esc([l.room,l.box,l.type].filter(Boolean).join(' / '))}</span><div>${occupied}点${l.capacity?' / 最大'+l.capacity+'点':''}　${l.capacity?`残り ${Math.max(0,100-occupied/l.capacity*100).toFixed(1)}% 収納可能`:'容量未設定'}</div><div class="storagebar"><span style="width:${pct}%"></span></div>${l.note?`<div class="muted">${esc(l.note)}</div>`:''}</div>`;
+  }).join(''):'<p class="muted">Storageタブに保管場所を登録するとここに表示されます。</p>';
+}
+function allSales(){
+  const out=[],known=new Set();
+  // ItemIDごとに最新のSales行だけを集計（出庫更新による二重計上を防止）
+  for(const [itemId,sale] of fast.saleByItem){out.push(sale);known.add(String(itemId));}
+  for(const it of state.inventory){if(it.oldSoldDate&&!known.has(String(it.no))){out.push({itemId:it.no,soldDate:it.oldSoldDate,market:it.oldMarket||it.manualMarket,price:it.oldSalePrice,legacy:true});}}
+  return out;
+}
+
+function renderSales(){
+  const month=$('month').value,day=$('saleDay').value;
+  const all=allSales(),rows=all.filter(x=>!month||String(x.soldDate).startsWith(month));
+  const daily=all.filter(x=>String(x.soldDate)===day);
+  $('monthSalesN').textContent=rows.length;
+  $('daySalesN').textContent=daily.length;
+  const markets={};for(const x of rows){const k=x.market||'未設定';markets[k]=(markets[k]||0)+1;}
+  $('marketTotals').innerHTML='<div class="tablewrap"><table><thead><tr><th>売却先</th><th>点数</th></tr></thead><tbody>'+Object.entries(markets).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<tr><td>${esc(k)}</td><td>${n}</td></tr>`).join('')+'</tbody></table></div>';
+  $('salesRows').innerHTML=rows.slice().sort((a,b)=>String(b.soldDate).localeCompare(String(a.soldDate))).map(x=>{const it=fast.inventoryByNo.get(String(x.itemId));return `<tr><td>${esc(x.soldDate)}</td><td>${esc(x.itemId)}</td><td class="itemname">${esc(it?.name||'')}</td><td>${esc(x.market)}</td></tr>`;}).join('');
+}
+
+function renderPick(){
+  const sold=state.inventory.filter(x=>isSold(x)&&!saleFor(x.no)?.picked);
+  $('pickCount').textContent=sold.length.toLocaleString();
+  $('pickRows').innerHTML=sold.map(x=>{
+    const sale=saleFor(x.no);
+    return `<tr><td class="sticky-action"><button data-pick="${esc(x.no)}">出庫済</button></td><td>${esc(sale?.soldDate||x.oldSoldDate)}</td><td>${esc(x.no)}</td><td class="itemname">${esc(x.name)}</td><td>${esc(x.storage)}</td><td>${esc(sale?.market||x.oldMarket)}</td></tr>`;
+  }).join('');
+}
+$('pickRows').onclick=async e=>{
+  const btn=e.target.closest('button[data-pick]');if(!btn)return;
+  const no=btn.dataset.pick, sale=saleFor(no);
+  if(!sale||!confirm(no+' を出庫済みにしますか？'))return;
+  btn.disabled=true;
+  try{
+    if(sale.legacy){
+      await appendRow('Sales',['PICK-'+Date.now(),no,sale.soldDate,sale.market,sale.price,'TRUE',todayStr,'旧データの出庫確認',new Date().toISOString()]);
+    }else{
+      const r=sale.raw.slice();while(r.length<9)r.push('');
+      r[5]='TRUE';r[6]=todayStr;
+      await api('/values/'+encRange('Sales!A'+sale.row+':I'+sale.row)+'?valueInputOption=USER_ENTERED',{method:'PUT',body:JSON.stringify({values:[r]})});
+    }
+    await loadAll();authMsg('出庫を記録しました。','ok');
+  }catch(err){console.error(err);btn.disabled=false;authMsg('出庫更新に失敗しました。','err');}
+};
+function renderMaster(){
+  const groups=new Map();
+  for(const x of state.master){
+    if(!groups.has(x.type))groups.set(x.type,[]);
+    groups.get(x.type).push(x);
+  }
+  $('masterGroups').innerHTML=[...groups.entries()].map(([name,items])=>{
+    const display=name==='種類対応'?'種類英字 → 種類':name;
+    const values=items.sort((a,b)=>String(a.value).localeCompare(String(b.value),'ja')).map(x=>{
+      const val=name==='種類対応'?String(x.value).replace(/\s*[=:：]\s*/,' → '):String(x.value);
+      return `<div class="master-value" style="padding:5px 0;border-bottom:1px solid #eee">${esc(val)} ${x.enabled?'':'<span class="muted">（無効）</span>'}</div>`;
+    }).join('');
+    return `<div class="panel master-group">
+      <div class="master-group-head">
+        <h3>${esc(display)}</h3>
+        <div class="master-group-actions">
+          <button type="button" data-master-group-edit="${esc(name)}">修正</button>
+          <button type="button" data-master-group-delete="${esc(name)}">削除</button>
+        </div>
+      </div>
+      <div class="master-list">${values}</div>
+    </div>`;
+  }).join('')||'<p class="muted">Masterの候補はまだありません。</p>';
+}
+function renderAll(){renderLists();renderInventory();renderStorage();renderSales();renderPick();renderMaster();updateAutoNo();}
+function updateAmounts(){
+  const form=$('addForm');
+  const base=Number(form.elements.pretax.value)||0;
+  const shipping=Number(form.elements.shipping.value)||0;
+  const rate=Number($('taxRate').value)||0;
+  const tax=$('taxClass').value==='課税'?Math.round((base*rate/100+Number.EPSILON)*100)/100:0;
+  $('taxAmount').value=tax.toFixed(2);
+  $('totalAmount').value=(Math.round((base+tax+shipping+Number.EPSILON)*100)/100).toFixed(2);
+}
+['pretax','tax_class','shipping'].forEach(n=>$('addForm').elements[n].addEventListener('input',updateAmounts));
+$('taxRate').addEventListener('input',updateAmounts);
+updateAmounts();
+let inventoryTimer; ['nameSearch','seasonSearch','colorSearch','sizeSearch'].forEach(id=>$(id).addEventListener('input',()=>{if(id==='seasonSearch'&&$(id).value)$('seasonSearchSelect').value='';if(id==='colorSearch'&&$(id).value)$('colorSearchSelect').value='';clearTimeout(inventoryTimer);inventoryTimer=setTimeout(renderInventory,120);})); ['seasonSearchSelect','colorSearchSelect','sizeSearchSelect'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='seasonSearchSelect'&&$(id).value)$('seasonSearch').value='';if(id==='colorSearchSelect'&&$(id).value)$('colorSearch').value='';renderInventory();})); ['stockFilter','sort'].forEach(id=>$(id).addEventListener('input',renderInventory));['month','saleDay'].forEach(id=>$(id).addEventListener('change',renderSales));
+
+document.querySelector('[name=purchase_date]').addEventListener('change',updateAutoNo);
+$('tabs').onclick=e=>{const b=e.target.closest('button[data-tab]');if(!b)return;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));['inventory','storage','sales','pick','master','csv'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab));};
+
+['nameSearch','seasonSearch','colorSearch','sizeSearch'].forEach(id=>$(id)?.addEventListener('input',renderInventory));
+['seasonSearchSelect','colorSearchSelect','sizeSearchSelect'].forEach(id=>$(id)?.addEventListener('change',renderInventory));
+$('inventoryRows').onclick=e=>{const del=e.target.closest('button[data-delete]');
+ if(del){deleteInventoryItem(Number(del.dataset.delete));return;}
+ const edit=e.target.closest('button[data-edit]');if(edit){openEdit(Number(edit.dataset.edit));return;}const b=e.target.closest('button[data-sell]');if(!b)return;selectedItem=state.inventory.find(x=>String(x.no)===String(b.dataset.sell));if(!selectedItem)return;$('sellItem').textContent=`${selectedItem.no} / ${selectedItem.name} / ${selectedItem.color} ${selectedItem.size}`;$('sellForm').elements.sold_date.value=todayStr;setList('marketList',candidate(['売却先']));fillSelect('sellMarketChoice',candidate(['売却先']),'選択');$('sellMarketInput').value='';$('sellDialog').showModal();};
+$('sellCancel').onclick=()=>$('sellDialog').close();
+
+async function deleteInventoryItem(rowNum){
+ const item=state.inventory.find(x=>x.row===rowNum);
+ if(!item||!token)return;
+ if(isSold(item)){
+   alert('売却履歴がある商品は、売上との紐づけを守るためこの画面から削除できません。');
+   return;
+ }
+ const label=`${item.no} / ${item.name} / ${item.color} ${item.size}`;
+ if(!confirm(`この商品を在庫一覧から削除しますか？\\n\\n${label}\\n\\nこの操作は元に戻せません。`))return;
+ try{
+   await clearInventoryRow(rowNum);
+   await loadAll();
+   authMsg('商品を削除しました。','ok');
+ }catch(err){console.error(err);authMsg('商品の削除に失敗しました。','err');}
+}
+
+const editFields=[['brand','ブランド'],['season','Season'],['alpha','商品種類'],['num','商品番号'],['kind','種類'],['name','品名'],['color','color'],['size','size'],['storage','保管場所'],['purchaseDate','購入日'],['store','購入店舗'],['receipt','レシート番号'],['pretax','購入単価'],['taxClass','課税区分'],['tax','TAX'],['shipping','送料'],['total','総額'],['memo','メモ']];
+const editIndex={brand:1,season:2,alpha:3,num:4,kind:5,name:6,color:7,size:8,storage:9,purchaseDate:11,store:12,receipt:13,pretax:14,taxClass:15,tax:16,total:17,memo:24,shipping:26};
+const editChoices={
+ brand:['ブランド'],season:['Season'],alpha:['種類英字','商品種類'],kind:['種類'],
+ color:['色','color','Color'],size:['サイズ','size','Size'],
+ storage:[],store:['購入店舗','店舗'],taxClass:[]
+};
+function editSelectInput(key,label,value){
+ const vals=key==='storage'?state.storage.map(x=>x.id):key==='taxClass'?['非課税','課税']:candidate(editChoices[key]||[]);
+ const unique=[...new Set(vals.filter(Boolean).map(String))];
+ if(value&&!unique.includes(String(value)))unique.unshift(String(value));
+ if(!unique.length)return `<label>${label}<input name="${key}" value="${esc(value)}"></label>`;
+ const opts=unique.map(v=>`<option value="${esc(v)}" ${String(value)===v?'selected':''}>${esc(v)}</option>`).join('');
+ return `<label>${label}<div class="choice-type"><select data-edit-choice="${key}"><option value="">選択</option>${opts}</select><input name="${key}" value="${esc(value)}" placeholder="選択または直接入力"></div></label>`;
+}
+function openEdit(rowNum){
+ editingItem=state.inventory.find(x=>x.row===rowNum);if(!editingItem)return;
+ $('editFields').innerHTML=editFields.map(([key,label])=>{
+   if(Object.hasOwn(editChoices,key)||key==='storage')return editSelectInput(key,label,editingItem[key]);
+   return `<label>${label}<input name="${key}" value="${esc(editingItem[key])}" ${key==='purchaseDate'?'type="date"':''}></label>`;
+ }).join('');
+ $('editFields').querySelectorAll('select[data-edit-choice]').forEach(sel=>{
+   sel.addEventListener('change',()=>{
+     if(sel.value) $('editFields').querySelector(`[name="${sel.dataset.editChoice}"]`).value=sel.value;
+   });
+ });
+ $('editDialog').showModal();
+}
+$('editCancel').onclick=()=>$('editDialog').close();
+$('editForm').onsubmit=async e=>{
+ e.preventDefault();if(!editingItem||!token)return;
+ const f=new FormData(e.target),r=editingItem.raw.slice();while(r.length<27)r.push('');
+ for(const [key] of editFields)r[editIndex[key]]=key==='storage'?cleanStorageLabel(f.get(key)):(f.get(key)||'');
+ const newPurchaseDate=f.get('purchaseDate')||'';
+ if(String(editingItem.status||'').includes('レシート紛失') || editingItem.purchaseDate==='2100-03-31'){
+   if(newPurchaseDate && newPurchaseDate!=='2100-03-31'){
+     r[23]=isSold(editingItem)?'売却済':'在庫';
+   }else{
+     r[23]='レシート紛失';
+   }
+ }
+ r[25]=new Date().toISOString();
+ try{await updateRow('Inventory',editingItem.row,r);$('editDialog').close();await loadAll();authMsg('商品情報を更新しました。','ok');}
+ catch(err){console.error(err);authMsg('商品情報の保存に失敗しました。','err');}
+};
+
+
+async function registerInventory(lostMode=false){
+  if(!token){authMsg('先にGoogleに接続してください。','err');return;}
+  const form=$('addForm');
+  const dateInput=form.elements.purchase_date;
+  const wasRequired=dateInput.required;
+  if(lostMode)dateInput.required=false;
+  const valid=form.reportValidity();
+  dateInput.required=wasRequired;
+  if(!valid)return;
+
+  const f=new FormData(form);
+  const now=new Date().toISOString();
+  const latest=await getRange('Inventory!A:A');
+  const existing=new Set(latest.slice(1).map(x=>String(x[0])));
+
+  // レシート紛失でも通常の年-連番。
+  // 購入年が不明なので、登録した現在年で採番する。
+  const issueYear = lostMode ? todayStr.slice(0,4) : String(f.get('purchase_date')).slice(0,4);
+  const yy=issueYear.slice(-2);
+  let n=1;
+  for(const x of existing){
+    const m=String(x).match(new RegExp('^'+yy+'-(\\d+)$'));
+    if(m)n=Math.max(n,Number(m[1])+1);
+  }
+  const newNo=yy+'-'+n;
+  if(existing.has(newNo)){authMsg('在庫Noが重複しました。再読み込みしてください。','err');return;}
+
+  const purchaseDate = lostMode ? '2100-03-31' : f.get('purchase_date');
+  const store = lostMode ? '' : f.get('store');
+  const receipt = lostMode ? '' : f.get('receipt');
+  const pretax = lostMode ? '' : f.get('pretax');
+  const taxClass = lostMode ? '' : f.get('tax_class');
+  const tax = lostMode ? '' : f.get('tax');
+  const shipping = lostMode ? '' : f.get('shipping');
+  const total = lostMode ? '' : f.get('total');
+  const status = lostMode ? 'レシート紛失' : '在庫';
+
+  const row=[newNo,f.get('brand'),f.get('season'),f.get('code_alpha'),f.get('code_num'),f.get('kind'),f.get('name'),f.get('color'),f.get('size'),cleanStorageLabel(f.get('storage')),'',
+    purchaseDate,store,receipt,pretax,taxClass,tax,total,'','','','','',status,f.get('memo'),now,shipping];
+
+  try{
+    const header=await getRange('Inventory!AA1');
+    if(!header[0]?.[0]) await api('/values/'+encRange('Inventory!AA1')+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[['送料']]})});
+    await appendRow('Inventory',row);
+    form.reset();
+    form.elements.purchase_date.value=todayStr;
+    updateAutoNo();
+    updateAmounts();
+    $('priceHint').textContent='過去の同一商品があれば自動入力';
+    await loadAll();
+    authMsg(lostMode?`レシート紛失として ${newNo} を登録しました。`:'在庫を追加しました。','ok');
+  }catch(err){
+    console.error(err);
+    authMsg(lostMode?'レシート紛失の登録に失敗しました。':'追加に失敗しました。','err');
+  }
+}
+
+$('addForm').onsubmit=async e=>{e.preventDefault();await registerInventory(false);};
+$('lostAddBtn').onclick=async()=>{
+  if(!confirm('レシート紛失として登録しますか？\\n在庫Noは通常の連番、購入日は2100/3/31、購入店舗・レシート番号・金額関連は空欄になります。'))return;
+  await registerInventory(true);
+};
+
+$('sellForm').onsubmit=async e=>{
+  e.preventDefault(); if(!selectedItem)return; const f=new FormData(e.target); const id='SALE-'+Date.now();
+  const sale=[id,selectedItem.no,f.get('sold_date'),f.get('market'),'','','',f.get('memo'),new Date().toISOString()];
+  try{
+    await appendRow('Sales',sale);
+    const r=selectedItem.raw.slice(); while(r.length<27)r.push(''); r[20]=f.get('sold_date');r[21]=f.get('market');r[22]='';
+    r[23]=(String(selectedItem.status||'').includes('レシート紛失')||selectedItem.purchaseDate==='2100-03-31')?'レシート紛失':'売却済';
+    r[25]=new Date().toISOString();
+    await updateRow('Inventory',selectedItem.row,r);
+    $('sellDialog').close(); await loadAll(); authMsg('売却を登録しました。','ok');
+  }catch(err){console.error(err);authMsg('売却登録に失敗しました。','err');}
+};
+$('storageForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{const row=[cleanStorageLabel(f.get('id')),f.get('room'),cleanStorageLabel(f.get('box')),f.get('type'),f.get('capacity'),f.get('note')];await api('/values/'+encRange('Storage!A:F')+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:[row]})});e.target.reset();await loadAll();authMsg('保管場所を追加しました。','ok');}catch(err){authMsg('保管場所の追加に失敗しました。','err');}};
+
+let editingMasterType='';
+
+function openMasterAdd(type=''){
+  $('masterForm').reset();
+  $('masterTypeChoice').value='';
+  $('masterType').value=type||'';
+  if(type && [...$('masterTypeChoice').options].some(o=>o.value===type)) $('masterTypeChoice').value=type;
+  syncMasterEntryUI();
+  $('masterAddDialog').showModal();
+}
+$('openMasterAdd').onclick=()=>openMasterAdd('');
+$('masterAddCancel').onclick=()=>$('masterAddDialog').close();
+
+function renderMasterGroupEditor(){
+  const items=state.master.filter(x=>x.type===editingMasterType).sort((a,b)=>String(a.value).localeCompare(String(b.value),'ja'));
+  $('masterGroupTitle').textContent=(editingMasterType==='種類対応'?'種類英字 → 種類':editingMasterType)+' を修正';
+  $('masterGroupRows').innerHTML=items.map(x=>{
+    const shown=editingMasterType==='種類対応'?String(x.value).replace(/\s*[=:：]\s*/,'='):String(x.value);
+    return `<div class="master-manage-row">
+      <input value="${esc(shown)}" data-master-value-input="${x.row}">
+      <button type="button" class="save-master-value" data-master-save="${x.row}">保存</button>
+      <button type="button" class="delete-master-value" data-master-delete="${x.row}">削除</button>
+    </div>`;
+  }).join('') || '<p class="muted">候補はまだありません。</p>';
+}
+
+function openMasterGroup(type){
+  editingMasterType=type;
+  $('masterGroupAddValue').value='';
+  renderMasterGroupEditor();
+  $('masterGroupDialog').showModal();
+}
+$('masterGroupClose').onclick=()=>$('masterGroupDialog').close();
+
+$('masterGroups').onclick=async e=>{
+  const edit=e.target.closest('button[data-master-group-edit]');
+  if(edit){ openMasterGroup(edit.dataset.masterGroupEdit); return; }
+
+  const del=e.target.closest('button[data-master-group-delete]');
+  if(del){
+    const type=del.dataset.masterGroupDelete;
+    const items=state.master.filter(x=>x.type===type);
+    if(!items.length)return;
+    if(!confirm(`「${type}」の候補 ${items.length}件をすべて削除しますか？`))return;
+    del.disabled=true;
+    try{
+      // Clear each matching Master row. We intentionally keep the sheet structure/header.
+      for(const item of items){
+        if(!item.row) continue;
+        await api('/values/'+encRange('Master!A'+item.row+':E'+item.row)+'?valueInputOption=RAW',{
+          method:'PUT',
+          body:JSON.stringify({values:[['','','','','']]})
+        });
+      }
+      const masterRows=await getRange('Master!A:E');
+      parseMaster(masterRows);
+      renderLists();
+      renderMaster();
+      authMsg(`「${type}」を削除しました。`,'ok');
+    }catch(err){
+      console.error(err);
+      authMsg('大項目の削除に失敗しました。','err');
+      del.disabled=false;
+    }
+  }
+};
+
+$('masterGroupAddBtn').onclick=async()=>{
+  if(!editingMasterType||!token)return;
+  const raw=$('masterGroupAddValue').value.trim();
+  if(!raw)return;
+  const names=raw.split(/[,、，]/).map(x=>x.trim()).filter(Boolean);
+  const existing=new Set(state.master.filter(x=>x.type===editingMasterType).map(x=>x.value));
+  const fresh=[...new Set(names)].filter(x=>!existing.has(x));
+  if(!fresh.length){authMsg('すでに登録されています。','err');return;}
+  try{
+    const rows=fresh.map(v=>[editingMasterType,v,'','TRUE','']);
+    await api('/values/'+encRange('Master!A:E')+':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:rows})});
+    const masterRows=await getRange('Master!A:E');parseMaster(masterRows);renderLists();renderMaster();renderMasterGroupEditor();
+    $('masterGroupAddValue').value='';
+    authMsg('候補を追加しました。','ok');
+  }catch(err){console.error(err);authMsg('追加に失敗しました。','err');}
+};
+
+$('masterGroupRows').onclick=async e=>{
+  const save=e.target.closest('button[data-master-save]');
+  const del=e.target.closest('button[data-master-delete]');
+  if(!save&&!del)return;
+  const rowNum=Number((save||del).dataset.masterSave || (save||del).dataset.masterDelete);
+  const item=state.master.find(x=>x.row===rowNum); if(!item)return;
+  try{
+    if(save){
+      const inp=$('masterGroupRows').querySelector(`[data-master-value-input="${rowNum}"]`);
+      let value=(inp?.value||'').trim();
+      if(editingMasterType==='種類対応') value=value.replace(/\s*→\s*/,'=');
+      if(!value){authMsg('空欄にはできません。削除を使ってください。','err');return;}
+      const row=[item.type,value,'',item.enabled?'TRUE':'FALSE',item.note||''];
+      await api('/values/'+encRange('Master!A'+rowNum+':E'+rowNum)+'?valueInputOption=USER_ENTERED',{method:'PUT',body:JSON.stringify({values:[row]})});
+    }else{
+      if(!confirm(`「${item.value}」を削除しますか？`))return;
+      await api('/values/'+encRange('Master!A'+rowNum+':E'+rowNum)+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[['','','','','']]})});
+    }
+    const masterRows=await getRange('Master!A:E');parseMaster(masterRows);renderLists();renderMaster();renderMasterGroupEditor();
+    authMsg(save?'候補を変更しました。':'候補を削除しました。','ok');
+  }catch(err){console.error(err);authMsg('Masterの更新に失敗しました。','err');}
+};
+
+bindChoice('masterTypeChoice','masterType',syncMasterEntryUI);
+function syncMasterEntryUI(){
+  const mapping=$('masterType').value==='種類対応';
+  $('masterValueWrap').classList.toggle('hidden',mapping);
+  $('masterAlphaWrap').classList.toggle('hidden',!mapping);
+  $('masterKindWrap').classList.toggle('hidden',!mapping);
+  $('masterValue').required=!mapping;
+  $('masterMapAlpha').required=mapping;
+  $('masterMapKind').required=mapping;
+  $('masterHelp').textContent=mapping?'種類英字と種類を1組ずつ登録します。例：T → Tシャツ':'名称はカンマ「,」または「、」で区切って複数登録できます。';
+}
+$('masterType').addEventListener('input',syncMasterEntryUI);$('masterType').addEventListener('change',syncMasterEntryUI);syncMasterEntryUI();
+$('reloadMaster').onclick=async()=>{
+  try{
+    $('reloadMaster').disabled=true;$('masterReloadStatus').textContent='読み込み中…';
+    const rows=await getRange('Master!A:E');parseMaster(rows);renderLists();renderMaster();
+    $('masterReloadStatus').textContent=`反映しました（${state.master.length}件） ${new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}`;
+  }catch(err){console.error(err);$('masterReloadStatus').textContent='再読込に失敗しました';}
+  finally{$('reloadMaster').disabled=false;}
+};
+$('masterForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{const type=String(f.get('type')).trim();
+    let names;
+    if(type==='種類対応'){
+      const a=String(f.get('map_alpha')||'').trim(), k=String(f.get('map_kind')||'').trim();
+      names=(a&&k)?[a+'='+k]:[];
+    }else names=String(f.get('value')||'').split(/[,、，]/).map(x=>x.trim()).filter(Boolean);
+    const existing=new Set(state.master.filter(x=>x.type===type).map(x=>x.value));
+    const fresh=[...new Set(names)].filter(x=>!existing.has(x));
+    if(!fresh.length){authMsg('名称はすでに登録されています。','err');return;}
+    const rows=fresh.map(name=>[type,name,'','TRUE',f.get('note')||'']);
+    await api('/values/'+encRange('Master!A:E')+':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:rows})});
+    // Inventory全件は再読込せず、Masterだけ読み直して検索候補にも即反映する。
+    const masterRows=await getRange('Master!A:E');parseMaster(masterRows);
+    e.target.reset();$('masterTypeChoice').value='';syncMasterEntryUI();renderLists();renderMaster();$('masterAddDialog').close();
+    $('masterReloadStatus').textContent=`登録を反映しました（${state.master.length}件）`;
+    authMsg('Masterに'+fresh.length+'件登録しました。','ok');}catch(err){console.error(err);authMsg('Master追加に失敗しました。','err');}};
+
+
+let csvImportRows=[];
+function parseCsv(text){
+  text=text.replace(/^\uFEFF/,''); const rows=[];let row=[],field='',quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c==='"'){if(quoted&&text[i+1]==='"'){field+='"';i++;}else quoted=!quoted;}
+    else if(c===','&&!quoted){row.push(field);field='';}
+    else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(field);if(row.some(x=>x!==''))rows.push(row);row=[];field='';}
+    else field+=c;
+  }
+  if(quoted)throw new Error('CSVの引用符が閉じていません');
+  row.push(field);if(row.some(x=>x!==''))rows.push(row);return rows;
+}
+const IMPORT_HEADERS=['在庫No','ブランド','Season','商品種類','商品番号','種類','品名','color','size','保管場所','売却場所 手入力','購入日','購入店舗','レシート番号','購入単価','課税・非課税','TAX（＄）','総額','中古','売上番号','売却日','売却場所','売上額','ステータス','メモ','更新日時','送料'];
+$('importCsvFile').onchange=async e=>{
+  csvImportRows=[];$('runCsvImport').disabled=true;
+  const file=e.target.files[0];if(!file)return;
+  try{
+    const rows=parseCsv(await file.text());if(rows.length<2)throw new Error('データ行がありません');
+    const headers=rows[0].map(x=>x.trim());
+    if(!headers.includes('在庫No')||!headers.includes('品名'))throw new Error('「在庫No」と「品名」の列が必要です');
+    const ix=IMPORT_HEADERS.map(x=>headers.indexOf(x));
+    const known=new Set(state.inventory.map(x=>String(x.no)));
+    const seen=new Set();let skipped=0;
+    csvImportRows=rows.slice(1).map(r=>ix.map(i=>i<0?'':(r[i]||''))).filter(r=>{
+      const no=String(r[0]).trim();if(!no||!String(r[6]).trim()||known.has(no)||seen.has(no)){skipped++;return false;}
+      seen.add(no);return true;
+    });
+    $('csvPreview').textContent=`${csvImportRows.length}件が取り込み対象、${skipped}件をスキップ（重複・必須項目不足）`;
+    $('csvPreviewHead').innerHTML='<tr>'+['在庫No','ブランド','種類','品名','購入日'].map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+    $('csvPreviewBody').innerHTML=csvImportRows.slice(0,20).map(r=>'<tr>'+[0,1,5,6,11].map(i=>'<td>'+esc(r[i])+'</td>').join('')+'</tr>').join('');
+    $('runCsvImport').disabled=!csvImportRows.length||!token;
+  }catch(err){$('csvPreview').textContent='CSVエラー: '+err.message;}
+};
+$('runCsvImport').onclick=async()=>{
+  if(!token||!csvImportRows.length)return;
+  if(!confirm(csvImportRows.length+'件をGoogle Sheetsに追加します。よろしいですか？'))return;
+  $('runCsvImport').disabled=true;
+  try{
+    const latest=await getRange('Inventory!A:A');const existing=new Set(latest.slice(1).map(x=>String(x[0])));
+    const fresh=csvImportRows.filter(r=>!existing.has(String(r[0])));
+    if(!fresh.length){$('csvPreview').textContent='取り込み対象はすでに登録されています。';return;}
+    await api('/values/'+encRange('Inventory!A:AA')+':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:fresh})});
+    csvImportRows=[];await loadAll();$('csvPreview').textContent=fresh.length+'件を取り込みました。';$('csvPreviewBody').innerHTML='';
+  }catch(err){console.error(err);$('csvPreview').textContent='取り込みに失敗しました。再実行前に在庫一覧を確認してください。';}
+};
+let pendingReceipt=[];
+function extractReceipt(text){
+  const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const dateMatch=text.match(/\b(20\d\d)[-\/.](\d{1,2})[-\/.](\d{1,2})\b/)||text.match(/\b(\d{1,2})[-\/.](\d{1,2})[-\/.](20\d\d)\b/);
+  let date='';if(dateMatch){const a=dateMatch.slice(1,4).map(Number);const y=a[0]>1900?a[0]:a[2],m=a[0]>1900?a[1]:a[0],d=a[0]>1900?a[2]:a[1];if(m>=1&&m<=12&&d>=1&&d<=31)date=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+  const store=lines.find(x=>/^[A-Za-z][A-Za-z\s&'-]{2,45}$/.test(x))||'';
+  const totalLine=lines.find(x=>/\b(grand total|total due|amount due|total)\b/i.test(x)&&/\d+[.,]\d{2}/.test(x));
+  const total=totalLine?(totalLine.match(/\$?\s*(\d+[.,]\d{2})\b/g)||[]).map(x=>Number(x.replace(/[$\s,]/g,''))).pop():null;
+  const taxLine=lines.find(x=>/\b(sales tax|tax)\b/i.test(x)&&/\d+[.,]\d{2}/.test(x));
+  const tax=taxLine?Number((taxLine.match(/\d+[.,]\d{2}/g)||[]).pop().replace(',','')):0;
+  const exclude=/\b(total|subtotal|tax|cash|change|visa|mastercard|amex|credit|debit|discount|balance|receipt|order|payment|tender|auth|phone|store|thank|shipping|delivery|tip|date)\b/i;
+  const items=[];
+  for(const line of lines){
+    if(exclude.test(line))continue;
+    const m=line.match(/^(.{3,75}?)\s+\$?\s*(\d{1,5}[.,]\d{2})\s*$/);
+    if(!m||!/[A-Za-z\u3040-\u30ff\u4e00-\u9faf]/.test(m[1]))continue;
+    const name=m[1].replace(/^\d+\s*[xX@]\s*/,'').trim();
+    if(name.length<3)continue;
+    items.push({name,price:Number(m[2].replace(',','.'))});
+  }
+  return {date,store,total,tax,items};
+}
+function receiptRows(parsed,items){
+  const year=parsed.date.slice(2,4), now=new Date().toISOString();
+  const used=new Set(state.inventory.map(x=>String(x.no)));
+  let seq=1;for(const no of used){const m=no.match(new RegExp('^'+year+'-(\\d+)$'));if(m)seq=Math.max(seq,Number(m[1])+1);}
+  return items.map(item=>{
+    while(used.has(year+'-'+seq))seq++;
+    const no=year+'-'+seq++;used.add(no);
+    const price=Number(item.price)||0,tax=Number(item.tax)||0,shipping=Number(item.shipping)||0;
+    return [no,item.brand||'',item.season||'',item.alpha||'',item.num||'',item.kind||'',item.name||'',item.color||'',item.size||'',item.storage||'','',parsed.date,parsed.store,item.receipt||'',price,tax>0?'課税':'非課税',tax,Math.round((price+tax+shipping)*100)/100,'','','','','','在庫','レシートOCR確認済',now,shipping];
+  });
+}
+async function saveReceiptRows(parsed,items){
+  if(!token)throw new Error('先にGoogleに接続してください');
+  const latest=await getRange('Inventory!A:A');const existing=new Set(latest.slice(1).map(r=>String(r[0])));
+  const rows=receiptRows(parsed,items);
+  if(rows.some(r=>existing.has(String(r[0]))))throw new Error('在庫Noが重複しています。再読込してからお試しください');
+  await api('/values/'+encRange('Inventory!A:AA')+':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:rows})});
+  await loadAll();return rows.length;
+}
+const RECEIPT_COLS=[['name','商品名'],['brand','ブランド'],['season','Season'],['kind','種類'],['alpha','商品種類'],['num','商品番号'],['color','色'],['size','サイズ'],['storage','保管場所'],['price','税抜価格'],['tax','TAX'],['shipping','送料'],['receipt','レシート番号']];
+function receiptItemMarkup(x,i){
+  return `<tr class="receipt-item" data-item="${i}"><td>${i+1}</td>`+
+    RECEIPT_COLS.map(([key,label])=>`<td><input aria-label="${label}" data-field="${key}" ${['price','tax','shipping'].includes(key)?'type="number" step="0.01" min="0"':''} value="${esc(x[key]??(['tax','shipping'].includes(key)?'0':''))}" style="min-width:${key==='name'?'210':'95'}px;width:100%;padding:7px"></td>`).join('')+
+    `<td><button type="button" data-remove-receipt="${i}" class="danger">削除</button></td></tr>`;
+}
+function renumberReceiptRows(){
+  document.querySelectorAll('#receiptProductRows .receipt-item').forEach((r,i)=>r.firstElementChild.textContent=i+1);
+}
+function renderReceiptReview(parsed){
+  $('receiptReview').classList.remove('hidden');
+  $('receiptReviewItems').innerHTML=`<div class="grid"><label>購入日<input id="reviewDate" type="date" value="${esc(parsed.date)}"></label><label>店舗<input id="reviewStore" value="${esc(parsed.store)}"></label></div>`+
+    `<p class="muted">横にスクロールして各セルを編集できます。行の追加・削除もできます。</p>`+
+    `<div class="tablewrap"><table><thead><tr><th>No.</th>${RECEIPT_COLS.map(([,label])=>'<th>'+label+'</th>').join('')}<th>操作</th></tr></thead><tbody id="receiptProductRows">`+
+    parsed.items.map(receiptItemMarkup).join('')+'</tbody></table></div>';
+}
+$('receiptAddItem').onclick=()=>{
+ if(!pendingReceipt.length)return;
+ const items=pendingReceipt[0].items;items.push({name:'',price:0,tax:0,shipping:0});
+ $('receiptProductRows').insertAdjacentHTML('beforeend',receiptItemMarkup(items[items.length-1],items.length-1));
+ renumberReceiptRows();
+};
+$('receiptReviewItems').onclick=e=>{
+ const b=e.target.closest('[data-remove-receipt]');if(b){b.closest('.receipt-item').remove();renumberReceiptRows();}
+};
+$('readReceipt').onclick=async()=>{
+  const file=$('receiptFile').files[0];if(!file){$('receiptStatus').textContent='レシート画像を選んでください。';return;}
+  if(!token){$('receiptStatus').textContent='先にGoogleに接続してください。';return;}
+  $('receiptReview').classList.add('hidden');pendingReceipt=[];
+  $('receiptStatus').textContent='OCRライブラリを読み込んでいます…';
+  try{
+    if(!window.Tesseract){await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';sc.onload=resolve;sc.onerror=reject;document.head.appendChild(sc);});}
+    $('receiptStatus').textContent='レシートを読み取っています…';
+    const result=await Tesseract.recognize(file,'eng');const text=result.data.text||'';
+    $('receiptText').value=text;const parsed=extractReceipt(text);
+    pendingReceipt=[parsed];renderReceiptReview(parsed);
+    $('receiptStatus').textContent='読み取り完了。一覧表を確認・修正してOKを押してください。';
+  }catch(err){console.error(err);$('receiptStatus').textContent='読み取り・登録に失敗しました: '+err.message;}
+};
+$('receiptSaveReviewed').onclick=async()=>{
+  if(!pendingReceipt.length)return;
+  const parsed=pendingReceipt[0];parsed.date=$('reviewDate').value;parsed.store=$('reviewStore').value.trim();
+  parsed.items=[...document.querySelectorAll('.receipt-item')].map(el=>{
+    const obj={};for(const input of el.querySelectorAll('[data-field]'))obj[input.dataset.field]=input.value.trim();
+    for(const key of ['price','tax','shipping'])obj[key]=Number(obj[key])||0;
+    return obj;
+  }).filter(x=>x.name);
+  if(!parsed.date||!parsed.store||!parsed.items.length){$('receiptStatus').textContent='購入日・店舗・商品名を入力してください。';return;}
+  const b=$('receiptSaveReviewed');b.disabled=true;
+  try{const n=await saveReceiptRows(parsed,parsed.items);pendingReceipt=[];$('receiptReview').classList.add('hidden');$('receiptStatus').textContent=n+'商品を登録しました。';}
+  catch(err){$('receiptStatus').textContent='登録に失敗しました: '+err.message;}
+  finally{b.disabled=false;}
+};
+$('downloadCsv').onclick=()=>{
+  const head=['在庫No','ブランド','Season','商品種類','商品番号','種類','品名','color','size','保管場所','購入日','購入店舗','レシート番号','購入単価','課税区分','TAX','総額','状態'];
+  const rows=state.inventory.map(x=>[x.no,x.brand,x.season,x.alpha,x.num,x.kind,x.name,x.color,x.size,x.storage,x.purchaseDate,x.store,x.receipt,x.pretax,x.taxClass,x.tax,x.total,isSold(x)?'売却済':'在庫']);
+  const q=x=>'"'+String(x??'').replace(/"/g,'""')+'"';const csv=[head,...rows].map(r=>r.map(q).join(',')).join('\r\n');
+  const blob=new Blob(['\ufeff',csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='supreme-inventory.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+};
+})();
+</script>
+</main>
+</body>
+</html>
